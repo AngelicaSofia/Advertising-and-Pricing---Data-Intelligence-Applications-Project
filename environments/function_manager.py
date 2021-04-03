@@ -27,7 +27,7 @@ def get_cost_x_click(bid):
     """Function that returns a stochastic cost per click as a function of the bid"""
     cost_per_click = 0
     while cost_per_click < 0:
-        cost_per_click = np.random.normal(loc=np.log(bid+1)/8, scale=1, size=None)
+        cost_per_click = np.random.normal(loc=np.log(bid+1)/8, scale=0.01*np.tanh(bid), size=None)
     return cost_per_click
 
 

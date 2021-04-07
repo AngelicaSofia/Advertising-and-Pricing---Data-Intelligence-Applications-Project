@@ -1,3 +1,7 @@
+from dia.environments.advertising_environment import *
+from dia.environments.pricing_environment import *
+
+
 class Scenario(object):
     """
     It represents a scenario on which the experiments is tested (simulation of the reality with a sort of model)
@@ -22,6 +26,8 @@ class Scenario(object):
         self.poisson1 = poisson1  # distribution of the visits to the website for class 1
         self.poisson2 = poisson2  # distribution of the visits to the website for class 2
         self.poisson3 = poisson3  # distribution of the visits to the website for class 3
+        self.advertising_campaign = None
+        self.pricing_environment = None
 
     def get_n_sub_campaigns(self):
         return self.n_sub_campaigns
@@ -37,4 +43,10 @@ class Scenario(object):
 
     def set_price3(self, price):
         self.accepted_selling_price_class3 = price
+
+    def set_advertising_environment(self, bids, weights):
+        self.advertising_campaign = Campaign(bids, weights)
+
+    def set_pricing_environment(self, n_arms, probabilities):
+        self.pricing_environment = pricing_environment(n_arms, probabilities)
 

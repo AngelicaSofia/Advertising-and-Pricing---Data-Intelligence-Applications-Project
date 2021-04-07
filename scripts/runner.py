@@ -54,3 +54,8 @@ if __name__ == '__main__':
     print("Estimate cost x click: \n")
     step2.estimate_cost_x_click()
     ###################################################################################################################
+    print("Step 3: ")
+    arms = [1, 2, 3, 4, 5]
+    probabilities = 5
+    scenario.set_pricing_environment(n_arms, probabilities)
+    scenario.pricing_environment

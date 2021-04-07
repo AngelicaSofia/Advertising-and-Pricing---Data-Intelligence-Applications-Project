@@ -1,0 +1,10 @@
+{
+  "max_price": 10,
+  "max_bid": 10,
+  "n_values_price": 10,
+  "n_values_bid": 10,
+  "n_obs": 50,
+  "noise_std_n_clicks": 5.0,
+  "noise_std_conv_rate": 0.2,
+  "noise_std_cost_x_click": 0.05
+}

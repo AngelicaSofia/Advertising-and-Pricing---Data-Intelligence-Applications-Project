@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from dia.environments import Scenario
-from dia.steps import Step1
+from dia.steps import Step1, Step2
 
 import json
 
@@ -26,16 +26,31 @@ if __name__ == '__main__':
 
     ###################################################################################################################
     print("Step 1: ")
-    max_bid = step1_config["max_bid"]
-    max_price = step1_config["max_price"]
+    #max_bid = step1_config["max_bid"]
+    #max_price = step1_config["max_price"]
     path1_obj = step1_config["path_obj"]
     path1_delta = step1_config["path_delta"]
-    step1 = Step1()
-    step1.joint_bidding_pricing_enumeration(scenario, max_price, max_bid, path1_obj, path1_delta)
+    #step1 = Step1()
+    #step1.joint_bidding_pricing_enumeration(scenario, max_price, max_bid, path1_obj, path1_delta)
     ###################################################################################################################
     print("Step 2: ")
     max_bid = step2_config["max_bid"]
-    min_bid = step2_config["min_bid"]
     max_price = step2_config["max_price"]
-    min_price = step2_config["min_price"]
-    #budgets =
+    n_bids = step2_config["n_values_bid"]
+    n_prices = step2_config["n_values_price"]
+    n_obs = step2_config["n_obs"]
+    noise_std_n_clicks = step2_config["noise_std_n_clicks"]
+    noise_std_conv_rate = step2_config["noise_std_conv_rate"]
+    noise_std_cost_x_click = step2_config["noise_std_cost_x_click"]
+
+    step2 = Step2(max_bid, max_price, n_bids, n_prices, n_obs, noise_std_n_clicks, noise_std_conv_rate,
+                  noise_std_cost_x_click)
+    print("Estimate #clicks: \n")
+    step2.estimate_n_clicks()
+
+    print("Estimate conversion rate: \n")
+    step2.estimate_conv_rate()
+
+    print("Estimate cost x click: \n")
+    step2.estimate_cost_x_click()
+    ###################################################################################################################

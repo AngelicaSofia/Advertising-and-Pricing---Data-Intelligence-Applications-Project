@@ -1,4 +1,6 @@
 {
   "max_bid": 20,
-  "max_price": 20
+  "max_price": 20,
+  "path_obj": "results/step1/obj_fun",
+  "path_delta": "results/step1/delta_obj"
 }

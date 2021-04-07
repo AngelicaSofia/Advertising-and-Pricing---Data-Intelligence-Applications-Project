@@ -15,19 +15,22 @@ def get_n_click(bid, customer):
     elif customer == 3:
         alpha = 70
         beta = 0.06  # 0.02
+        """
     n = -1
     while n < 0:
         param = np.tanh(np.random.normal(loc=bid, scale=0.6 * np.tanh(bid)) * beta)
         n_click = alpha * param
-        n = n_click
+        n = n_click"""
+    param = np.tanh(np.random.normal(loc=bid, scale=0.6 * np.tanh(bid)) * beta)
+    n_click = alpha * param
     return n_click
 
 
 def get_cost_x_click(bid):
     """Function that returns a stochastic cost per click as a function of the bid"""
-    cost_per_click = 0
-    while cost_per_click < 0:
-        cost_per_click = np.random.normal(loc=np.log(bid+1)/8, scale=0.01*np.tanh(bid), size=None)
+    #cost_per_click = 0
+    #while cost_per_click < 0:
+    cost_per_click = np.random.normal(loc=np.log(bid+1)/8, scale=0.01*np.tanh(bid), size=None)
     return cost_per_click
 
 

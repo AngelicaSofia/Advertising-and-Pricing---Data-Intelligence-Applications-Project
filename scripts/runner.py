@@ -1,8 +1,9 @@
 from argparse import ArgumentParser
 from dia.environments import Scenario
-from dia.steps import Step1, Step2
+from dia.steps import Step1, Step2, Step3
 
 import json
+import numpy as np
 
 
 if __name__ == '__main__':
@@ -10,6 +11,7 @@ if __name__ == '__main__':
     parser.add_argument('--scenario_config', type=str)
     parser.add_argument('--step1_config', type=str)
     parser.add_argument('--step2_config', type=str)
+    parser.add_argument('--step3_config', type=str)
     args = parser.parse_args()
 
     with open(args.scenario_config, 'r') as file:
@@ -18,6 +20,8 @@ if __name__ == '__main__':
         step1_config = json.load(file)
     with open(args.step2_config, 'r') as file:
         step2_config = json.load(file)
+    with open(args.step3_config, 'r') as file:
+        step3_config = json.load(file)
 
     n_sub_campaigns = scenario_config["n_sub_campaigns"]
     n_features = scenario_config["n_features"]
@@ -46,16 +50,23 @@ if __name__ == '__main__':
     step2 = Step2(max_bid, max_price, n_bids, n_prices, n_obs, noise_std_n_clicks, noise_std_conv_rate,
                   noise_std_cost_x_click)
     print("Estimate #clicks: \n")
-    step2.estimate_n_clicks()
+    #step2.estimate_n_clicks()
 
     print("Estimate conversion rate: \n")
-    step2.estimate_conv_rate()
+    #step2.estimate_conv_rate()
 
     print("Estimate cost x click: \n")
-    step2.estimate_cost_x_click()
+    #step2.estimate_cost_x_click()
     ###################################################################################################################
     print("Step 3: ")
-    arms = [1, 2, 3, 4, 5]
-    probabilities = 5
-    scenario.set_pricing_environment(n_arms, probabilities)
-    scenario.pricing_environment
+    n_clicks = step3_config["number_clicks"]
+    cost_per_click = step3_config["cost_per_click"]
+    lambda_poisson = step3_config["lambda_poisson"]
+    arms = np.linspace((max_price - n_prices + 1), max_price, n_prices)
+    # Uniform probabilities
+    probabilities = {i:(1/n_prices) for i in range(n_prices)}
+    scenario.set_pricing_environment(arms, probabilities)
+    step3 = Step3(n_clicks, cost_per_click, lambda_poisson, arms, probabilities)
+    step3.execute(scenario, step3_config["time_horizon"], step3_config["n_experiment"])
+    print("The best arm (price) is: "+str(step3.best_arm))
+    print("The end!")

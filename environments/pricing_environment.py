@@ -5,8 +5,8 @@ class pricing_environment():
     Environment with information about the candidates and their probabilities
     """
 
-    def __init__(self, n_arms, probabilities):
-        self.n_arms = n_arms
+    def __init__(self, arms, probabilities):
+        self.arms = arms
         self.probabilities = probabilities
 
     def round(self, pulled_arm):

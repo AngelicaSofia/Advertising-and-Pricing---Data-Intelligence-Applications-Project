@@ -1,5 +1,5 @@
 from dia.environments import Scenario
-from dia.learner.pricing.pricing_learner import TS_Learner
+from dia.learner.pricing.pricing_learner import TS_Learner, UCB1_Learner
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +10,7 @@ import pandas as pd
 class Step3:
     """ This step is a pure pricing task. We have a fixed value of number of clicks and cost per click and we want to
     learn the conversion rate curve (talking about aggregate data, so only one conversion rate)."""
-    def __init__(self, number_clicks, cost_per_click, lambda_poisson, arms, probabilities):
+    def __init__(self, number_clicks, cost_per_click, lambda_poisson, arms, probabilities, conv_rate):
         self.number_clicks = number_clicks
         self.cost_per_click = cost_per_click
         self.lambda_poisson = lambda_poisson
@@ -18,14 +18,14 @@ class Step3:
         self.arms = arms #prices
         self.n_arms = len(self.arms)
         self.probabilities = probabilities #probabilty for every arm
+        self.conv_rate = conv_rate
 
         self.pulled_arms = []
 
     def objective_function(self, price):
         """This function returns the objective function, having a bid, number of clicks and cost per click fixed. The
         value that is changing is the price"""
-        #TODO come gestire la conversion rate? devo usarla
-        reward = price * self.number_clicks * (1 + self.lambda_poisson) \
+        reward = price * self.conv_rate[(price - 1).astype(int)] * self.number_clicks * (1 + self.lambda_poisson) \
                  - (self.cost_per_click * self.number_clicks)
         return reward
 
@@ -37,12 +37,15 @@ class Step3:
         n_experiments: number of experiments to perform
         """
         ts_rewards_per_experiment = []  # store rewards
-        gr_rewards_per_experiment = []  # store rewards
+        ucb1_rewards_per_experiment = []
+        #gr_rewards_per_experiment = []  # store rewards
+        ucb1_best_arm_per_experiment = []
 
         for e in range(0, n_experiment):
             env = scenario.pricing_environment
             # simulate interaction
             ts_learner = TS_Learner(n_arms=self.n_arms)
+            ucb1_learner = UCB1_Learner(n_arms=self.n_arms)
             #gr_learner = Greedy_Learner(n_arms=n_arms)
 
             # iterate on number of rounds - simulate interaction between learner and environment
@@ -50,7 +53,6 @@ class Step3:
                 # Thompson Sampling TS Learner
                 pulled_arm = ts_learner.pull_arm()  # learner compute arm to pull
                 reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
-                #TODO consider our function è giusto?
                 reward *= self.objective_function(self.arms[pulled_arm])
                 ts_learner.update(pulled_arm, reward)  # learner updates the rewards
                 self.pulled_arms.append(self.arms[pulled_arm])
@@ -60,11 +62,26 @@ class Step3:
                 #reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
                 #gr_learner.update(pulled_arm, reward)  # learner updates the rewards
 
-            # store value of collected rewards #TODO controlla argomento di append()
+                # UCB1 Learner
+                pulled_arm = ucb1_learner.pull_arm()  # learner compute arm to pull
+                reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
+                reward *= self.objective_function(self.arms[pulled_arm])
+                ucb1_learner.update(pulled_arm, reward)  # learner updates the rewards
+
+            # store value of collected rewards
             ts_rewards_per_experiment.append(np.sum(ts_learner.collected_rewards))
+            ucb1_rewards_per_experiment.append(np.sum(ucb1_learner.collected_rewards))
+            ucb1_best_arm_per_experiment.append(np.argmin(2 * np.log(horizon) / ucb1_learner.count_pulled_arms))
             #gr_rewards_per_experiment.append(np.sum(gr_learner.collected_rewards))
 
+        # select best arm TS
         self.best_arm = self.select_best_arm()
+        # select best arm UCB1
+        #self.best_arm_ucb1 = np.argmin(2 * np.log(horizon) / ucb1_learner.count_pulled_arms)
+        self.best_arm_ucb1 = np.max(ucb1_best_arm_per_experiment) - 1.0
+
+        print("The best arm (price TS) is: " + str(self.best_arm))
+        print("The best arm (price UCB1) is: " + str(self.best_arm_ucb1))
         data = np.array(self.pulled_arms)
         labels = []
         for i in self.arms:
@@ -87,7 +104,7 @@ class Step3:
             ax.text(rect.get_x() + rect.get_width() / 2, height + 5, label,
                     ha='center', va='bottom')
         plt.plot()
-        plt.ylim(0, labels[best-1]+50)
+        plt.ylim(0, labels[best-1]+300)
         plt.show()
 
     def select_best_arm(self):

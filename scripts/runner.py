@@ -49,14 +49,15 @@ if __name__ == '__main__':
 
     step2 = Step2(max_bid, max_price, n_bids, n_prices, n_obs, noise_std_n_clicks, noise_std_conv_rate,
                   noise_std_cost_x_click)
-    print("Estimate #clicks: \n")
+    #print("Estimate #clicks: \n")
     #step2.estimate_n_clicks()
 
-    print("Estimate conversion rate: \n")
+    #print("Estimate conversion rate: \n")
     #step2.estimate_conv_rate()
 
-    print("Estimate cost x click: \n")
+    #print("Estimate cost x click: \n")
     #step2.estimate_cost_x_click()
+
     ###################################################################################################################
     print("Step 3: ")
     n_clicks = step3_config["number_clicks"]
@@ -64,9 +65,16 @@ if __name__ == '__main__':
     lambda_poisson = step3_config["lambda_poisson"]
     arms = np.linspace((max_price - n_prices + 1), max_price, n_prices)
     # Uniform probabilities
-    probabilities = {i:(1/n_prices) for i in range(n_prices)}
+    #probabilities = {i:(1/n_prices) for i in range(n_prices)}
+    probabilities = step3_config["probabilities"]
+
+    conv_rate = step3_config["conv_rate"]
+
     scenario.set_pricing_environment(arms, probabilities)
-    step3 = Step3(n_clicks, cost_per_click, lambda_poisson, arms, probabilities)
+    step3 = Step3(n_clicks, cost_per_click, lambda_poisson, arms, probabilities, conv_rate)
     step3.execute(scenario, step3_config["time_horizon"], step3_config["n_experiment"])
-    print("The best arm (price) is: "+str(step3.best_arm))
+    #print("The best arm (price) is: "+str(step3.best_arm))
+
+    ###################################################################################################################
+    print("Step 4: ")
     print("The end!")

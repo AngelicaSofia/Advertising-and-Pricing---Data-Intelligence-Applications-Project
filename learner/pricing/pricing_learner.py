@@ -51,33 +51,38 @@ class TS_Learner(Learner):
         # Second parameter: Opposite
         self.beta_parameters[pulled_arm, 1] = self.beta_parameters[pulled_arm, 1] + 1.0 - success
 
-"""
-class Greedy_Learner(Learner):
-    '''Greedy Learner that has to compute at each round, the value of the expected reward for the pulled arm'''
+class UCB1_Learner(Learner):
+    '''UCB1 Learner always selects the arm with the upper confidence bound, calculated with the formula of UCB1. The
+    arm is selected as the one that has the maximum value of the average of the samples (calculated as the value
+    self.expected_rewards plus a term that is the confidence (computed with the square root of the logarithm of 2 times
+    the time divided by the number of times an arm has been pulled).'''
     def __init__(self, n_arms):
         super().__init__(n_arms)
         self.expected_rewards = np.zeros(n_arms)
+        self.count_pulled_arms = np.zeros(n_arms)
 
     def pull_arm(self):
-        Greedy Learner selects the arm to pull at each round t, by maximizing th expected reward array.
-
-        Note that we assume that each arm is pulled at least once, so in the first rounds all arms are pulled (arm 0 at
-        round 0, arm 1 at round 1, till all arms are pulled once).
-        
+        """UCB1 samples the first time all the arms, then the arm with the higher upper confidence bound"""
         if self.t < self.n_arms:
             return self.t
-        # Select arm that maximizes the expected reward
-        idxs = np.argwhere(self.expected_rewards == self.expected_rewards.max()).reshape(-1)
-        # As we could have multiple indexes, we randomly select one of the index that maximizes the expected reward
-        chosen_pulled_arm = np.random.choice(idxs)
-        return chosen_pulled_arm
+        # Select arm that has the higher upper confidence bound reward
+        upper_conf_bound = np.zeros(self.n_arms)
+        # Compute upper confidence bounds for all arms
+        for i in range(10):
+            confidence = np.sqrt(2 * np.log(self.t) / (self.count_pulled_arms[i]))
+            upper_conf_bound[i] = self.expected_rewards[i] + confidence
+        # Returns index of arm with higher upper confidence bound
+        idxs = np.argmax(upper_conf_bound)
+        return idxs
 
     def update(self, pulled_arm, reward):
-        Function that takes the pulled arm and the reward given by it
+        """Function that takes the pulled arm and the reward given by it, it updates the reward per arm and the rewards
+        of all collected arms and updates the number of times an arm has been pulled"""
         self.t+=1
+        self.count_pulled_arms[pulled_arm] += 1
         self.update_observations(pulled_arm, reward)
         # Update array of expected rewards that is simply the average of collected expected rewards for this arm
+
         # Perform a recursive update fo the average
         self.expected_rewards[pulled_arm] = (self.expected_rewards[pulled_arm] * (self.t - 1) + reward) / self.t
 
-"""

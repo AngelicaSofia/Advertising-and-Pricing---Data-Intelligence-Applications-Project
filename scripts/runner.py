@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from dia.environments import Scenario
-from dia.steps import Step1, Step2, Step3, Step4
+from dia.steps import Step1, Step2, Step3, Step4, Step5
 
 import json
 import numpy as np
@@ -13,6 +13,7 @@ if __name__ == '__main__':
     parser.add_argument('--step2_config', type=str)
     parser.add_argument('--step3_config', type=str)
     parser.add_argument('--step4_config', type=str)
+    parser.add_argument('--step5_config', type=str)
     args = parser.parse_args()
 
     with open(args.scenario_config, 'r') as file:
@@ -25,6 +26,8 @@ if __name__ == '__main__':
         step3_config = json.load(file)
     with open(args.step4_config, 'r') as file:
         step4_config = json.load(file)
+    with open(args.step5_config, 'r') as file:
+        step5_config = json.load(file)
 
     n_sub_campaigns = scenario_config["n_sub_campaigns"]
     n_features = scenario_config["n_features"]
@@ -74,9 +77,9 @@ if __name__ == '__main__':
     conv_rate = step3_config["conv_rate"]
 
     scenario.set_pricing_environment(arms, probabilities)
-    #step3 = Step3(n_clicks, cost_per_click, lambda_poisson, arms, probabilities, conv_rate)
-    #step3.execute(scenario, step3_config["time_horizon"], step3_config["n_experiment"])
-    #print("The best arm (price) is: "+str(step3.best_arm))
+    step3 = Step3(n_clicks, cost_per_click, lambda_poisson, arms, probabilities, conv_rate)
+    step3.execute(scenario, step3_config["time_horizon"], step3_config["n_experiment"])
+    print("The best arm (price) is: "+str(step3.best_arm))
 
     ###################################################################################################################
     print("Step 4: ")
@@ -84,4 +87,17 @@ if __name__ == '__main__':
     step4 = Step4(step4_config["probabilities"], step4_config["prices"], step4_config["features"],
                   step4_config["categories"], n_persons)
     step4.execute(scenario, 1, 1)
+
+    ###################################################################################################################
+    print("Step 5: ")
+    n_obs = step5_config["n_obs"]
+    scenario.set_bidding_environment(step5_config["bids"], step5_config["probabilities"])
+    step5 = Step5(lambda_poisson, step5_config["bids"], step5_config["probabilities"], conv_rate, n_obs,
+                  noise_std_n_clicks, noise_std_cost_x_click, step5_config["up_p"])
+    step5.execute(scenario, step3_config["time_horizon"], step5_config["n_experiment"])
+    print("The best arm (bid) is: "+str(step5.best_arm))
+
+    ###################################################################################################################
+    print("Step 6: ")
+
     print("The end!")

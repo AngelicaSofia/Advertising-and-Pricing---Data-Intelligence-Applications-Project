@@ -91,7 +91,7 @@ class Step3:
         fig, ax = plt.subplots(1, 1)
         #ax.hist(self.pulled_arms, histtype='bar', ec='blue')
         plt.bar(self.arms, height=labels)
-        ax.set_title('Histogram of arms pulled')
+        ax.set_title('Histogram of arms pulled - Pricing')
         ax.set_xlabel('Arms')
         ax.set_ylabel('Number of times each arm was pulled')
         ax.set_xticks(np.arange(self.n_arms)+1)
@@ -105,7 +105,8 @@ class Step3:
                     ha='center', va='bottom')
         plt.plot()
         plt.ylim(0, labels[best-1]+300)
-        plt.show()
+        #plt.show()
+        #plt.savefig("plots/pricing (step 3)/TS_for_pricing.png")
 
     def select_best_arm(self):
         return max(set(self.pulled_arms), key=self.pulled_arms.count)

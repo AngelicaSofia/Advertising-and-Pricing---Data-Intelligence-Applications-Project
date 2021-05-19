@@ -18,13 +18,16 @@ class Step4:
         self.evaluations_of_splitting = []
         """
         0: (0,1),2,3
-        1: 0,(1,2),3
-        2: 0,1,(2,3)
-        3: (0,1,2),3
-        4: 0,(1,2,3)
-        5: (0,1,2,3)
-        6: 0,1,2,3
-        7: (0,1),(2,3)
+        1: (0, 2), 1, 3
+        2. (0, 3), 1, 2
+        3: 0, (1, 2), 3
+        4: 0, (1, 3), 2
+        5: 0,1,(2,3)
+        6: (0,1,2),3
+        7: 0,(1,2,3)
+        8: (0,1,2,3)
+        9: 0,1,2,3
+        10: (0,1),(2,3)
         """
         self.monthly_best = [] # 12 array list keeping best split per month
 
@@ -108,22 +111,41 @@ class Step4:
         starting_point_reward = self.objective_function_split_4(poisson_list)
 
         for i in range(3): #index 0-2 for 3 experiments of unifying in couples
-            overall_reward = 0
-            poisson = (poisson_list[i] + poisson_list[i+1]) / 2
-            probability = list(map(add, self.probabilities[i], self.probabilities[i+1]))
-            probability[:] = [x / 2 for x in probability]
-            number_persons = self.p_manager.categories_count[i] + self.p_manager.categories_count[i+1]
+            for k in range(i+1, 4):
+                overall_reward = 0
+                poisson = (poisson_list[i] + poisson_list[k]) / 2
+                probability = list(map(add, self.probabilities[i], self.probabilities[k]))
+                probability[:] = [x / 2 for x in probability]
+                number_persons = self.p_manager.categories_count[i] + self.p_manager.categories_count[k]
 
-            reward_of_unified = self.objective_function_unify(probability, number_persons, poisson)
+                reward_of_unified = self.objective_function_unify(probability, number_persons, poisson)
 
-            left_cat = [0, 1, 2, 3]
-            left_cat.remove(i)
-            left_cat.remove(i+1)
-            reward_still_split = 0
-            for j in left_cat:
-                reward_still_split += self.single_split_reward[j]
-            overall_reward = reward_still_split + reward_of_unified
-            self.evaluations_of_splitting.append(overall_reward)
+                left_cat = [0, 1, 2, 3]
+                left_cat.remove(i)
+                left_cat.remove(k)
+                reward_still_split = 0
+                for j in left_cat:
+                    reward_still_split += self.single_split_reward[j]
+                overall_reward = reward_still_split + reward_of_unified
+                self.evaluations_of_splitting.append(overall_reward)
+
+                """
+                overall_reward = 0
+                poisson = (poisson_list[i] + poisson_list[i+1]) / 2
+                probability = list(map(add, self.probabilities[i], self.probabilities[i+1]))
+                probability[:] = [x / 2 for x in probability]
+                number_persons = self.p_manager.categories_count[i] + self.p_manager.categories_count[i+1]
+    
+                reward_of_unified = self.objective_function_unify(probability, number_persons, poisson)
+    
+                left_cat = [0, 1, 2, 3]
+                left_cat.remove(i)
+                left_cat.remove(i+1)
+                reward_still_split = 0
+                for j in left_cat:
+                    reward_still_split += self.single_split_reward[j]
+                overall_reward = reward_still_split + reward_of_unified
+                self.evaluations_of_splitting.append(overall_reward)"""
 
         for i in range(2): #index 0-1 for 2 experiments of unifying in triples
             overall_reward = 0
@@ -179,17 +201,19 @@ class Step4:
             overall_reward = reward_of_unified_1 + reward_of_unified_2
             self.evaluations_of_splitting.append(overall_reward)
 
-
-
     def get_categories(self, code):
         """
-        0: (0,1),2,3
-        1: 0,(1,2),3
-        2: 0,1,(2,3)
-        3: (0,1,2),3
-        4: 0,(1,2,3)
-        5: (0,1,2,3)
-        6: 0,1,2,3
+        0: (0, 1), 2, 3
+        1: (0, 2), 1, 3
+        2. (0, 3), 1, 2
+        3: 0, (1, 2), 3
+        4: 0, (1, 3), 2
+        5: 0, 1, (2, 3)
+        6: (0,1,2),3
+        7: 0,(1,2,3)
+        8: (0,1,2,3)
+        9: 0,1,2,3
+        10: (0,1),(2,3)
         """
         result = {}
         if code == 0:
@@ -208,6 +232,32 @@ class Step4:
         elif code == 1:
             print("There are 3 categories")
             result.update(number_classes=3)
+            class_merged = self.categories[0] + self.categories[2]
+            result.update(class_1=class_merged)
+            result.update(class_2=self.categories[1])
+            result.update(class_3=self.categories[3])
+            print("class 1: ")
+            print(result["class_1"])
+            print("class 2: ")
+            print(result["class_2"])
+            print("class 3: ")
+            print(result["class_3"])
+        elif code == 2:
+            print("There are 3 categories")
+            result.update(number_classes=3)
+            class_merged = self.categories[0] + self.categories[3]
+            result.update(class_1=class_merged)
+            result.update(class_2=self.categories[1])
+            result.update(class_3=self.categories[2])
+            print("class 1: ")
+            print(result["class_1"])
+            print("class 2: ")
+            print(result["class_2"])
+            print("class 3: ")
+            print(result["class_3"])
+        elif code == 3:
+            print("There are 3 categories")
+            result.update(number_classes=3)
             class_merged = self.categories[1:3]
             result.update(class_1=self.categories[0])
             result.update(class_2=class_merged)
@@ -218,7 +268,20 @@ class Step4:
             print(result["class_2"])
             print("class 3: ")
             print(result["class_3"])
-        elif code == 2:
+        elif code == 4:
+            print("There are 3 categories")
+            result.update(number_classes=3)
+            class_merged = self.categories[1] + self.categories[3]
+            result.update(class_1=self.categories[0])
+            result.update(class_2=class_merged)
+            result.update(class_3=self.categories[2])
+            print("class 1: ")
+            print(result["class_1"])
+            print("class 2: ")
+            print(result["class_2"])
+            print("class 3: ")
+            print(result["class_3"])
+        elif code == 5:
             print("There are 3 categories")
             result.update(number_classes=3)
             class_merged = self.categories[2:4]
@@ -231,7 +294,7 @@ class Step4:
             print(result["class_2"])
             print("class 3: ")
             print(result["class_3"])
-        elif code == 3:
+        elif code == 6:
             print("There are 2 categories")
             result.update(number_classes=2)
             class_merged = self.categories[0:3]
@@ -241,7 +304,7 @@ class Step4:
             print(result["class_1"])
             print("class 2: ")
             print(result["class_2"])
-        elif code == 4:
+        elif code == 7:
             print("There are 2 categories")
             result.update(number_classes=2)
             class_merged = self.categories[1:4]
@@ -251,14 +314,14 @@ class Step4:
             print(result["class_1"])
             print("class 2: ")
             print(result["class_2"])
-        elif code == 5:
+        elif code == 8:
             print("There is not any category")
             result.update(number_classes=1)
             class_merged = self.categories[0:4]
             result.update(single_class=class_merged)
             print("Only a single class: ")
             print(result["single_class"])
-        elif code == 6:
+        elif code == 9:
             print("There are 4 categories")
             result.update(number_classes=4)
             result.update(class_1=self.categories[0])
@@ -273,7 +336,7 @@ class Step4:
             print(result["class_3"])
             print("class 4: ")
             print(result["class_3"])
-        elif code == 7:
+        elif code == 10:
             print("There are 2 categories")
             result.update(number_classes=2)
             class_merged_1 = self.categories[0:2]
@@ -284,3 +347,4 @@ class Step4:
             print(result["class_1"])
             print("class 2: ")
             print(result["class_2"])
+

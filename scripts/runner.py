@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from dia.environments import Scenario
-from dia.steps import Step1, Step2, Step3, Step4, Step5
+from dia.steps import Step1, Step2, Step3, Step4, Step5, Step6
 
 import json
 import numpy as np
@@ -14,6 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('--step3_config', type=str)
     parser.add_argument('--step4_config', type=str)
     parser.add_argument('--step5_config', type=str)
+    parser.add_argument('--step6_config', type=str)
     args = parser.parse_args()
 
     with open(args.scenario_config, 'r') as file:
@@ -28,6 +29,8 @@ if __name__ == '__main__':
         step4_config = json.load(file)
     with open(args.step5_config, 'r') as file:
         step5_config = json.load(file)
+    with open(args.step6_config, 'r') as file:
+        step6_config = json.load(file)
 
     n_sub_campaigns = scenario_config["n_sub_campaigns"]
     n_features = scenario_config["n_features"]
@@ -99,5 +102,12 @@ if __name__ == '__main__':
 
     ###################################################################################################################
     print("Step 6: ")
+    scenario.set_joint_bidding_environment(step6_config["bids"], step6_config["bid_pr"])
+    scenario.set_joint_pricing_environment(step6_config["prices"], step6_config["price_pr"])
+    step6 = Step6(lambda_poisson, step6_config["bids"], conv_rate, n_obs,
+                  noise_std_n_clicks, noise_std_cost_x_click)
+    #step6.execute(scenario, step3_config["time_horizon"], step6_config["n_experiment"])
+    #print("The best arm (bid) is: " + str(step6.best_bid_arm))
+    #print("The best arm (price) is: " + str(step6.best_price_arm))
 
     print("The end!")

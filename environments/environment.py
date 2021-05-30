@@ -27,8 +27,10 @@ class Scenario(object):
         self.poisson2 = poisson2  # distribution of the visits to the website for class 2
         self.poisson3 = poisson3  # distribution of the visits to the website for class 3
         self.advertising_campaign = None
-        self.pricing_environment = None
+        self.pricing_environment = None #Step 3
         self.bidding_environment = None #Step 5
+        self.joint_pricing_environment = None  # Step 6
+        self.joint_bidding_environment = None  # Step 6
 
     def get_n_sub_campaigns(self):
         return self.n_sub_campaigns
@@ -53,4 +55,10 @@ class Scenario(object):
 
     def set_bidding_environment(self, n_arms, probabilities):
         self.bidding_environment = pricing_environment(n_arms, probabilities)
+
+    def set_joint_pricing_environment(self, n_arms, probabilities):
+        self.joint_pricing_environment = pricing_environment(n_arms, probabilities)
+
+    def set_joint_bidding_environment(self, n_arms, probabilities):
+        self.joint_bidding_environment = pricing_environment(n_arms, probabilities)
 

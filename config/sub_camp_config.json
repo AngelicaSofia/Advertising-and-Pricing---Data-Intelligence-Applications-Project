@@ -1,0 +1,24 @@
+{
+    "campaigns": [
+        {
+            "sigma": 2.0,
+            "subcampaigns": {
+                "Class 1":
+                    {
+                        "max_value": 100,
+                        "speed": 1
+                    },
+                "Class 2":
+                    {
+                        "max_value": 120,
+                        "speed": 1
+                    },
+                "Class 3":
+                    {
+                        "max_value": 70,
+                        "speed": 1
+                    }
+            }
+        }
+    ]
+}

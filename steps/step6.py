@@ -6,22 +6,19 @@ from dia.environments import function_manager as fm
 
 import numpy as np
 import matplotlib.pyplot as plt
-import collections
-from collections import Counter
 import pandas as pd
 import random
 
-class Step5:
+class Step6:
     """ This step is a pure ... TODO"""
-    def __init__(self, lambda_poisson, arms, probabilities, conv_rate, n_obs, noise_std_n_clicks,
-                 noise_std_cost_x_click, updated_p):
+    def __init__(self, lambda_poisson, arms, conv_rate, n_obs, noise_std_n_clicks,
+                 noise_std_cost_x_click):
         self.lambda_poisson = lambda_poisson
 
-        self.arms = arms #bids
-        self.n_arms = len(self.arms)
-        self.successes = probabilities #probabilty for every arm
-        self.init_probabilities = probabilities
-        self.updated_probabilities = updated_p
+        self.bid_arms = arms #bids
+        self.price_arms = arms  # prices
+        self.n_bid_arms = len(self.bid_arms)
+        self.n_price_arms = len(self.price_arms)
         self.conv_rate = conv_rate
         self.n_obs = n_obs
         self.noise_std_n_clicks = noise_std_n_clicks
@@ -32,16 +29,17 @@ class Step5:
         self.temp_estimated_cost = [0] * 10
         self.temp_estimated_n_clicks = [0] * 10
 
-        self.pulled_arms = []
+        self.pulled_bid_arms = []
+        self.pulled_price_arms = []
         # Lists to verify that the reward for the arm is positive
-        self.number_pulls_for_arm = [0] * len(self.arms)
-        self.number_positive_rewards_for_arm = [0] * len(self.arms)
+        self.number_pulls_for_bid_arm = [0] * len(self.bid_arms)
+        self.number_positive_rewards_for_bid_arm = [0] * len(self.bid_arms)
+        self.number_pulls_for_price_arm = [0] * len(self.price_arms)
+        self.number_positive_rewards_for_price_arm = [0] * len(self.price_arms)
 
         self.sigma_reward = 0
-        self.sigma_cost_per_click = np.zeros(len(self.arms))
-        self.sigma_n_clicks = np.zeros(len(self.arms))
-
-        self.lambda_values_poisson_months = np.zeros(360) # horizon one year
+        self.sigma_cost_per_click = np.zeros(len(self.bid_arms))
+        self.sigma_n_clicks = np.zeros(len(self.bid_arms))
 
     def generate_observations(self, f_to_estimate, x):
         """Function to generate observations. Considering number of clicks and cost per click, the function depends on
@@ -67,7 +65,7 @@ class Step5:
         for i in range(0, self.n_obs):
             gp_learner = GP_Learner(self.noise_std_n_clicks)
 
-            new_x_obs = np.random.choice(self.arms, 1)
+            new_x_obs = np.random.choice(self.bid_arms, 1)
             # 1 is the customer class
             new_y_obs = self.generate_observations("n_clicks", new_x_obs)
 
@@ -77,7 +75,7 @@ class Step5:
             X = np.atleast_2d(x_obs).T
             Y = y_obs.ravel()
 
-            gp_learner.learn(X, Y, self.arms)
+            gp_learner.learn(X, Y, self.bid_arms)
             """
             fig = plt.figure(i + self.n_obs*(self.estimation_round)/10)
             plt.plot(gp_learner.x_pred, ((fm.get_n_click(gp_learner.x_pred, 1) + fm.get_n_click(gp_learner.x_pred, 2) +
@@ -102,7 +100,7 @@ class Step5:
         predicted_n_clicks = gp_learner.gp.predict(bid_value.reshape(1, -1))
         # predict number of clicks with indicated bid
         float(predicted_n_clicks)
-        for i in self.arms:
+        for i in self.bid_arms:
             b = np.array([i]) # bid value
             pred_n_c = gp_learner.gp.predict(b.reshape(1, -1))
             self.temp_estimated_n_clicks[i-1] = pred_n_c
@@ -116,7 +114,7 @@ class Step5:
         for i in range(0, self.n_obs):
             gp_learner = GP_Learner(self.noise_std_cost_x_click)
 
-            new_x_obs = np.random.choice(self.arms, 1)
+            new_x_obs = np.random.choice(self.bid_arms, 1)
             new_y_obs = self.generate_observations("cost_per_click", new_x_obs)
 
             x_obs = np.append(x_obs, new_x_obs.astype(float))
@@ -125,7 +123,7 @@ class Step5:
             X = np.atleast_2d(x_obs).T
             Y = y_obs.ravel()
 
-            gp_learner.learn(X, Y, self.arms)
+            gp_learner.learn(X, Y, self.bid_arms)
             """
             fig = plt.figure(i + 1000 + self.n_obs*(self.estimation_round)/10)
             plt.plot(gp_learner.x_pred, fm.get_cost_x_click(gp_learner.x_pred), 'r', label=r'$cost(bid)$')
@@ -148,7 +146,7 @@ class Step5:
         predicted_cost = gp_learner.gp.predict(bid_value.reshape(1, -1))
         # predict number of clicks with indicated bid
         float(predicted_cost)
-        for i in self.arms:
+        for i in self.bid_arms:
             b = np.array([i]) # bid value
             pred_c_c = gp_learner.gp.predict(b.reshape(1, -1))
             self.temp_estimated_cost[i-1] = pred_c_c
@@ -158,20 +156,12 @@ class Step5:
     def objective_function(self, price, bid, t):
         """This function returns the objective function, considering that conversion rate is known, while number of
         clicks and cost per click must be learnt as gaussian processes"""
-        if t < 30:
-            lambda_poisson = np.random.poisson(self.lambda_poisson, 1)
-        else:
-            resample = np.mean(self.lambda_values_poisson_months[0:t-29])
-            lambda_poisson = np.random.poisson(resample, 1)
-        self.lambda_values_poisson_months[t] = lambda_poisson
-        print(self.lambda_values_poisson_months[t])
-
         if t%120==0: # every 4 months a new gp is run
             reward = price * self.conv_rate[(price - 1)] * self.estimate_n_clicks(bid) * \
-                     (1 + lambda_poisson) - (self.estimate_cost_x_click(bid) * self.estimate_n_clicks(bid))
+                     (1 + self.lambda_poisson) - (self.estimate_cost_x_click(bid) * self.estimate_n_clicks(bid))
         else:
             reward = price * self.conv_rate[(price - 1)] * self.temp_estimated_n_clicks[bid - 1] * \
-                     (1 + lambda_poisson) - (self.temp_estimated_cost[bid - 1] *
+                     (1 + self.lambda_poisson) - (self.temp_estimated_cost[bid - 1] *
                                                   self.temp_estimated_n_clicks[bid - 1])
 
         self.sigma_reward = (self.temp_estimated_n_clicks[bid - 1]**2 * self.sigma_cost_per_click[bid - 1]**2) + \
@@ -188,14 +178,18 @@ class Step5:
         horizon: time horizon of the experiment
         n_experiments: number of experiments to perform
         """
-        ts_rewards_per_experiment = []  # store rewards
+        ts_bid_rewards_per_experiment = []  # store rewards bidding
+        ts_price_rewards_per_experiment = []  # store rewards pricing
 
         for e in range(0, n_experiment):
             self.exp = e
             self.estimation_round = 1
-            env = scenario.bidding_environment
+            bidding_env = scenario.joint_bidding_environment
+            pricing_env = scenario.joint_pricing_environment
+
             # simulate interaction
-            ts_learner = TS_Learner(n_arms=self.n_arms)
+            ts_bid_learner = TS_Learner(n_arms=self.n_bid_arms)
+            ts_price_learner = TS_Learner(n_arms=self.n_price_arms)
             early_stopping = 0 #avoid infinite loop for safety constraint
 
             # iterate on number of rounds - simulate interaction between learner and environment
@@ -208,93 +202,150 @@ class Step5:
                     # The more the # rounds, the higher the number of observations
 
                 if t > 10:
-                    self.set_reward_successes()
 
-                    # Thompson Sampling TS Learner
-                    pulled_arm = ts_learner.pull_arm()  # learner compute arm to pull
-                    reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
-                    price = 4
-                    reward *= self.objective_function(price, self.arms[pulled_arm], t)
-                    check_safety_constraint = - reward / self.sigma_reward
+                    # Thompson Sampling TS Learner for bidding
+                    pulled_bid_arm = ts_bid_learner.pull_arm()  # learner compute arm to pull
+                    bid_reward = bidding_env.round(pulled_bid_arm)
+                    # bidding environment compute reward given the pulled arm
+
+                    # Thompson Sampling TS Learner for pricing
+                    pulled_price_arm = ts_price_learner.pull_arm()  # learner compute arm to pull
+                    price_reward = pricing_env.round(pulled_price_arm)
+                    # bidding environment compute reward given the pulled arm
+
+                    #price = random.randint(1, 10)
+                    multiplier = self.objective_function(self.price_arms[pulled_price_arm],
+                                                         self.bid_arms[pulled_bid_arm],
+                                                         t)
+
+                    bid_reward *= multiplier
+                    price_reward *= multiplier
+
+                    check_safety_constraint = - bid_reward / self.sigma_reward
                     while check_safety_constraint > -0.84:
+                        print("early stopping: " + str(early_stopping))
+                        print("safety value: " + str(check_safety_constraint))
                         early_stopping = early_stopping + 1
-                        pulled_arm = ts_learner.pull_arm()  # learner compute arm to pull
-                        reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
-                        price = 4
-                        reward *= self.objective_function(price, self.arms[pulled_arm], t)
-                        check_safety_constraint = - reward / self.sigma_reward
+                        pulled_bid_arm = ts_bid_learner.pull_arm()  # learner compute arm to pull
+                        bid_reward = bidding_env.round(pulled_bid_arm)  # environment compute reward given pulled arm
+                        #reward = (bid_reward + price_reward) / 2
+                        #price = random.randint(1, 10)
+                        #reward *= self.objective_function(self.price_arms[pulled_price_arm],
+                        #                                  self.bid_arms[pulled_bid_arm],
+                        #                                  t)
+                        multiplier = self.objective_function(self.price_arms[pulled_price_arm],
+                                                             self.bid_arms[pulled_bid_arm],
+                                                             t)
+                        bid_reward *= multiplier
+                        check_safety_constraint = - bid_reward / self.sigma_reward
                         if early_stopping == 10:
                             check_safety_constraint = -1
 
-                    """if max(self.successes) >= 0.2:
-                    VERSIONE VECCHIA PER VERIFICARE IL 20% DI PROB. DI SUCCESS.
-                        while self.successes[pulled_arm] < 0.2:
-                            pulled_arm = ts_learner.pull_arm()  # learner compute arm to pull"""
                 else:
-                    # Thompson Sampling TS Learner
-                    pulled_arm = ts_learner.pull_arm()  # learner compute arm to pull
-                    reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
-                    price = 4
-                    reward *= self.objective_function(price, self.arms[pulled_arm], t)
+                    # Thompson Sampling TS Learner for bidding
+                    pulled_bid_arm = ts_bid_learner.pull_arm()  # learner compute arm to pull
+                    bid_reward = bidding_env.round(pulled_bid_arm)
+                    # bidding environment compute reward given the pulled arm
 
-                ts_learner.update(pulled_arm, reward)  # learner updates the rewards
-                self.pulled_arms.append(self.arms[pulled_arm])
+                    # Thompson Sampling TS Learner for pricing
+                    pulled_price_arm = ts_price_learner.pull_arm()  # learner compute arm to pull
+                    price_reward = pricing_env.round(pulled_price_arm)
+                    # bidding environment compute reward given the pulled arm
+
+                    #reward = (bid_reward + price_reward) / 2
+                    # price = random.randint(1, 10)
+
+                    #reward *= self.objective_function(self.price_arms[pulled_price_arm],
+                    #                                  self.bid_arms[pulled_bid_arm],
+                    #                                  t)
+                    bid_reward *= self.objective_function(self.price_arms[pulled_price_arm],
+                                                          self.bid_arms[pulled_bid_arm],
+                                                          t)
+                    price_reward *= self.objective_function(self.price_arms[pulled_price_arm],
+                                                            self.bid_arms[pulled_bid_arm],
+                                                            t)
+
+                ts_bid_learner.update(pulled_bid_arm, bid_reward)  # bid learner updates the rewards
+                ts_price_learner.update(pulled_price_arm, price_reward)  # price learner updates the rewards
+
+                self.pulled_bid_arms.append(self.bid_arms[pulled_bid_arm])
+                self.pulled_price_arms.append(self.price_arms[pulled_price_arm])
 
                 # Checks needed to verify reward of positive rewards of the pulled arms
-                self.number_pulls_for_arm[pulled_arm] = self.number_pulls_for_arm[pulled_arm] + 1
-                if reward > 0:
-                    self.number_positive_rewards_for_arm[pulled_arm] = (self.number_positive_rewards_for_arm[pulled_arm]
-                                                                        + 1)
-                if t == 10:
-                    self.set_probabilities(env)
+                self.number_pulls_for_bid_arm[pulled_bid_arm] = self.number_pulls_for_bid_arm[pulled_bid_arm] + 1
+                if bid_reward > 0:
+                    self.number_positive_rewards_for_bid_arm[pulled_bid_arm] = (
+                            self.number_positive_rewards_for_bid_arm[pulled_bid_arm] + 1)
+
             # store value of collected rewards
-            ts_rewards_per_experiment.append(np.sum(ts_learner.collected_rewards))
+            ts_bid_rewards_per_experiment.append(np.sum(ts_bid_learner.collected_rewards))
+            ts_price_rewards_per_experiment.append(np.sum(ts_price_learner.collected_rewards))
 
-        # select best arm TS
-        self.best_arm = self.select_best_arm()
+        # select best arm TS bidding
+        self.best_bid_arm = self.select_best_bid_arm()
+        # select best arm TS pricing
+        self.best_price_arm = self.select_best_price_arm()
 
-        print("The best arm (bid TS) is: " + str(self.best_arm))
-        data = np.array(self.pulled_arms)
+        print("The best arm (bid TS) is: " + str(self.best_bid_arm))
+        print("The best arm (price TS) is: " + str(self.best_price_arm))
+        # TS for bidding plot
+        data = np.array(self.pulled_bid_arms)
         labels = []
-        for i in self.arms:
+        for i in self.bid_arms:
             count = np.count_nonzero(data==i)
             labels.append(count)
 
         fig, ax = plt.subplots(1, 1)
-        #ax.hist(self.pulled_arms, histtype='bar', ec='blue')
-        plt.bar(self.arms, height=labels)
+        #ax.hist(self.pulled_bid_arms, histtype='bar', ec='blue')
+        plt.bar(self.bid_arms, height=labels)
         ax.set_title('Histogram of arms pulled - Bidding')
         ax.set_xlabel('Arms')
         ax.set_ylabel('Number of times each arm was pulled')
-        ax.set_xticks(np.arange(self.n_arms)+1)
-        ax.set_xticklabels(self.arms)
+        ax.set_xticks(np.arange(self.n_bid_arms)+1)
+        ax.set_xticklabels(self.bid_arms)
         rects = ax.patches
-        best = self.best_arm
+        best_bid = self.best_bid_arm
 
         for rect, label in zip(rects, labels):
             height = rect.get_height()
             ax.text(rect.get_x() + rect.get_width() / 2, height + 5, label,
                     ha='center', va='bottom')
         plt.plot()
-        plt.ylim(0, labels[best-1]+400)
+        plt.ylim(0, labels[best_bid-1]+300)
         #plt.show()
         plt.savefig("plots/TS_for_bidding.png")
 
-    def select_best_arm(self):
-        return max(set(self.pulled_arms), key=self.pulled_arms.count)
+        # TS for pricing plot
+        data_price = np.array(self.pulled_price_arms)
+        labels_price = []
+        for i in self.price_arms:
+            count_price = np.count_nonzero(data_price == i)
+            labels_price.append(count_price)
 
-    def set_reward_successes(self):
-        """Probabilities of the arms are updated according to the percentage of positive rewards that these arms had
-        previously got"""
-        for arm in range(self.n_arms):
-            if self.number_pulls_for_arm[arm] > 0:
-                self.successes[arm] = self.number_positive_rewards_for_arm[arm] / self.number_pulls_for_arm[arm]
+        fig, ax = plt.subplots(1, 1)
+        # ax.hist(self.pulled_bid_arms, histtype='bar', ec='blue')
+        plt.bar(self.price_arms, height=labels_price)
+        ax.set_title('Histogram of arms pulled - Pricing')
+        ax.set_xlabel('Arms')
+        ax.set_ylabel('Number of times each arm was pulled')
+        ax.set_xticks(np.arange(self.n_price_arms) + 1)
+        ax.set_xticklabels(self.price_arms)
+        rects = ax.patches
+        best_price = self.best_price_arm
 
-    def set_probabilities(self, env: pricing_environment):
-        "Change probabilities of env"
-        print("before: ")
-        print(env.probabilities)
-        for i in range(len(self.arms)):
-            env.probabilities[i] = self.updated_probabilities[i]
-        print("after: ")
-        print(env.probabilities)
+        for rect, label in zip(rects, labels_price):
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width() / 2, height + 5, label,
+                    ha='center', va='bottom')
+        plt.plot()
+        plt.ylim(0, labels_price[best_price - 1] + 300)
+        # plt.show()
+        plt.savefig("plots/TS_for_pricing.png")
+
+    def select_best_bid_arm(self):
+        return max(set(self.pulled_bid_arms), key=self.pulled_bid_arms.count)
+
+    def select_best_price_arm(self):
+        return max(set(self.pulled_price_arms), key=self.pulled_price_arms.count)
+
+

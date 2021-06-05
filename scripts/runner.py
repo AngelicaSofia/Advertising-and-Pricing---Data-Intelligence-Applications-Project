@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from dia.environments import Scenario
-from dia.steps import Step1, Step2, Step3, Step4, Step5, Step6
+from dia.steps import Step1, Step2, Step3, Step4, Step5, Step6, Step7
 
 import json
 import numpy as np
@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--step4_config', type=str)
     parser.add_argument('--step5_config', type=str)
     parser.add_argument('--step6_config', type=str)
+    parser.add_argument('--step7_config', type=str)
     args = parser.parse_args()
 
     with open(args.scenario_config, 'r') as file:
@@ -31,6 +32,8 @@ if __name__ == '__main__':
         step5_config = json.load(file)
     with open(args.step6_config, 'r') as file:
         step6_config = json.load(file)
+    with open(args.step7_config, 'r') as file:
+        step7_config = json.load(file)
 
     n_sub_campaigns = scenario_config["n_sub_campaigns"]
     n_features = scenario_config["n_features"]
@@ -97,8 +100,8 @@ if __name__ == '__main__':
     scenario.set_bidding_environment(step5_config["bids"], step5_config["probabilities"])
     step5 = Step5(lambda_poisson, step5_config["bids"], step5_config["probabilities"], conv_rate, n_obs,
                   noise_std_n_clicks, noise_std_cost_x_click, step5_config["up_p"])
-    step5.execute(scenario, step3_config["time_horizon"], step5_config["n_experiment"])
-    print("The best arm (bid) is: "+str(step5.best_arm))
+    #step5.execute(scenario, step3_config["time_horizon"], step5_config["n_experiment"])
+    #print("The best arm (bid) is: "+str(step5.best_arm))
 
     ###################################################################################################################
     print("Step 6: ")
@@ -109,5 +112,15 @@ if __name__ == '__main__':
     #step6.execute(scenario, step3_config["time_horizon"], step6_config["n_experiment"])
     #print("The best arm (bid) is: " + str(step6.best_bid_arm))
     #print("The best arm (price) is: " + str(step6.best_price_arm))
+
+    ###################################################################################################################
+    print("Step 7: ")
+    scenario.set_joint_classes_bidding_environment(step7_config["bids"], step7_config["bid_pr"])
+    scenario.set_joint_classes_pricing_environment(step7_config["prices"], step7_config["price_pr"])
+    step7 = Step7(lambda_poisson, step7_config["bids"], step7_config["conv_rate"], n_obs,
+                  noise_std_n_clicks, noise_std_cost_x_click)
+    step7.execute(scenario, step3_config["time_horizon"], step7_config["n_experiment"])
+    print("The best arm (bid) is: " + str(step7.best_bid_arm))
+    print("The best arm (price) is: " + str(step7.best_price_arm))
 
     print("The end!")

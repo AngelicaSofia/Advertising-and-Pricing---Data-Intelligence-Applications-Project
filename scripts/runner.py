@@ -90,9 +90,11 @@ if __name__ == '__main__':
     ###################################################################################################################
     print("Step 4: ")
     n_persons = 12000
+    scenario.set_pricing_environment(arms, probabilities)
     step4 = Step4(step4_config["probabilities"], step4_config["prices"], step4_config["features"],
-                  step4_config["categories"], n_persons)
-    step4.execute(scenario, 1, 1)
+                  step4_config["categories"], n_persons, n_clicks, cost_per_click, lambda_poisson, arms, probabilities,
+                  conv_rate)
+    step4.execute(scenario, step3_config["time_horizon"], step3_config["n_experiment"])
 
     ###################################################################################################################
     print("Step 5: ")

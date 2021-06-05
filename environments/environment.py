@@ -31,6 +31,8 @@ class Scenario(object):
         self.bidding_environment = None #Step 5
         self.joint_pricing_environment = None  # Step 6
         self.joint_bidding_environment = None  # Step 6
+        self.joint_classes_pricing_environment = None  # Step 7
+        self.joint_classes_bidding_environment = None  # Step 7
 
     def get_n_sub_campaigns(self):
         return self.n_sub_campaigns
@@ -61,4 +63,10 @@ class Scenario(object):
 
     def set_joint_bidding_environment(self, n_arms, probabilities):
         self.joint_bidding_environment = pricing_environment(n_arms, probabilities)
+
+    def set_joint_classes_pricing_environment(self, n_arms, probabilities):
+        self.joint_classes_pricing_environment = pricing_environment(n_arms, probabilities)
+
+    def set_joint_classes_bidding_environment(self, n_arms, probabilities):
+        self.joint_classes_bidding_environment = pricing_environment(n_arms, probabilities)
 

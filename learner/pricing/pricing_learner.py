@@ -60,19 +60,20 @@ class UCB1_Learner(Learner):
         super().__init__(n_arms)
         self.expected_rewards = np.zeros(n_arms)
         self.count_pulled_arms = np.zeros(n_arms)
+        # Select arm that has the higher upper confidence bound reward
+        self.upper_conf_bound = np.zeros(self.n_arms)
 
     def pull_arm(self):
         """UCB1 samples the first time all the arms, then the arm with the higher upper confidence bound"""
         if self.t < self.n_arms:
             return self.t
-        # Select arm that has the higher upper confidence bound reward
-        upper_conf_bound = np.zeros(self.n_arms)
+
         # Compute upper confidence bounds for all arms
         for i in range(10):
             confidence = np.sqrt(2 * np.log(self.t) / (self.count_pulled_arms[i]))
-            upper_conf_bound[i] = self.expected_rewards[i] + confidence
+            self.upper_conf_bound[i] = self.expected_rewards[i] + confidence
         # Returns index of arm with higher upper confidence bound
-        idxs = np.argmax(upper_conf_bound)
+        idxs = np.argmax(self.upper_conf_bound)
         return idxs
 
     def update(self, pulled_arm, reward):

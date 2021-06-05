@@ -164,7 +164,7 @@ class Step5:
             resample = np.mean(self.lambda_values_poisson_months[0:t-29])
             lambda_poisson = np.random.poisson(resample, 1)
         self.lambda_values_poisson_months[t] = lambda_poisson
-        print(self.lambda_values_poisson_months[t])
+        #print(self.lambda_values_poisson_months[t])
 
         if t%120==0: # every 4 months a new gp is run
             reward = price * self.conv_rate[(price - 1)] * self.estimate_n_clicks(bid) * \
@@ -298,3 +298,22 @@ class Step5:
             env.probabilities[i] = self.updated_probabilities[i]
         print("after: ")
         print(env.probabilities)
+
+    def clairvoyant(self, t):
+        """This function returns the objective function, having a bid, number of clicks and cost per click fixed. The
+        value that is changing is the price"""
+        if t < 30:
+            lambda_poisson = np.random.poisson(self.lambda_poisson, 1)
+        else:
+            resample = np.mean(self.lambda_values_poisson_months[0:t-29])
+            lambda_poisson = np.random.poisson(resample, 1)
+        self.lambda_values_poisson_months[t] = lambda_poisson
+
+        rewards = list()
+        for price in self.arms:
+            reward = price * self.conv_rate[(price - 1).astype(int)] * self.number_clicks * (1 + lambda_poisson) \
+                     - (self.cost_per_click * self.number_clicks)
+            rewards.append(reward)
+        best_reward = max(rewards)
+        best_arm = rewards.index(best_reward)
+        return best_arm, best_reward

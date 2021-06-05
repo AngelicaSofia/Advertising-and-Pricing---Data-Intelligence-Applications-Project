@@ -19,3 +19,17 @@ def table_to_csv(table, name):
     """Function to save the table into a csv file"""
     pd.DataFrame(table).to_csv(name+".csv")
 
+def create_dict(keys):
+    myDict = {key: None for key in keys}
+    return myDict
+
+def update_dict(file, key, val):
+    file[key] = value
+
+def dict_to_csv(file, keys, name):
+    csv_file = name+".csv"
+    with open(file, 'w') as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=keys)
+        writer.writeheader()
+        for data in dict_data:
+            writer.writerow(data)

@@ -84,8 +84,8 @@ if __name__ == '__main__':
 
     scenario.set_pricing_environment(arms, probabilities)
     step3 = Step3(n_clicks, cost_per_click, lambda_poisson, arms, probabilities, conv_rate)
-    step3.execute(scenario, step3_config["time_horizon"], step3_config["n_experiment"])
-    print("The best arm (price) is: "+str(step3.best_arm))
+    #step3.execute(scenario, step3_config["time_horizon"], step3_config["n_experiment"])
+    #print("The best arm (price) is: "+str(step3.best_arm))
 
     ###################################################################################################################
     print("Step 4: ")
@@ -119,8 +119,8 @@ if __name__ == '__main__':
     scenario.set_joint_classes_pricing_environment(step7_config["prices"], step7_config["price_pr"])
     step7 = Step7(lambda_poisson, step7_config["bids"], step7_config["conv_rate"], n_obs,
                   noise_std_n_clicks, noise_std_cost_x_click)
-    step7.execute(scenario, step3_config["time_horizon"], step7_config["n_experiment"])
-    print("The best arm (bid) is: " + str(step7.best_bid_arm))
-    print("The best arm (price) is: " + str(step7.best_price_arm))
+    #step7.execute(scenario, step3_config["time_horizon"], step7_config["n_experiment"])
+    #print("The best arm (bid) is: " + str(step7.best_bid_arm))
+    #print("The best arm (price) is: " + str(step7.best_price_arm))
 
     print("The end!")

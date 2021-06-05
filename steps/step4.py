@@ -1,6 +1,7 @@
 from dia.environments import Scenario
 from dia.learner.pricing.pricing_learner import TS_Learner
 from dia.environments.pricing.person_manager import Person_Manager
+from dia.utils import logger
 
 from operator import add
 
@@ -33,7 +34,9 @@ class Step4:
 
         # utilizziamo un person_manager per gestire la creazione di nuove persone
         self.p_manager = Person_Manager(self.categories, self.probabilities, self.features)
-
+        self.result_table = logger.create_table(11, 3)
+        # 3 columns in result table, first is the month, second is the best category, third is the number of categories
+        # fourth is the reward of the best
 
     def objective_function_split_4(self, poisson:list):
         """This function returns the objective function. Cost per click is now not useful as it would be the same
@@ -69,6 +72,7 @@ class Step4:
         n_experiments: number of experiments to perform
         """
         ts_rewards_per_experiment = []  # store rewards
+        path_obj = "results/step4/results"
 
         # Context Generation
         # Use a person_manager to manage the creation of new people
@@ -83,8 +87,15 @@ class Step4:
             print("month ", month)
             print(self.evaluations_of_splitting)
             self.monthly_best.append(best_split)
+            logger.update_table(self.result_table, month, 0, month + 1)
+            logger.update_table(self.result_table, month, 1, self.monthly_best[month])
+            detail = self.get_splitting(best_split)
+            number_cat = len(detail) - 1
+            logger.update_table(self.result_table, month, 2, number_cat)
+            logger.update_table(self.result_table, month, 3, max_value)
         print("months")
         print(self.monthly_best)
+        #logger.table_to_csv(self.result_table, path_obj)
 
         def most_frequent(List):
             return max(set(List), key=List.count)
@@ -217,7 +228,7 @@ class Step4:
         """
         result = {}
         if code == 0:
-            print("There are 3 categories")
+            print("There are 3 contexts")
             result.update(number_classes=3)
             class_merged = self.categories[0:2]
             result.update(class_1=class_merged)
@@ -230,7 +241,7 @@ class Step4:
             print("class 3: ")
             print(result["class_3"])
         elif code == 1:
-            print("There are 3 categories")
+            print("There are 3 contexts")
             result.update(number_classes=3)
             class_merged = self.categories[0] + self.categories[2]
             result.update(class_1=class_merged)
@@ -243,7 +254,7 @@ class Step4:
             print("class 3: ")
             print(result["class_3"])
         elif code == 2:
-            print("There are 3 categories")
+            print("There are 3 contexts")
             result.update(number_classes=3)
             class_merged = self.categories[0] + self.categories[3]
             result.update(class_1=class_merged)
@@ -256,7 +267,7 @@ class Step4:
             print("class 3: ")
             print(result["class_3"])
         elif code == 3:
-            print("There are 3 categories")
+            print("There are 3 contexts")
             result.update(number_classes=3)
             class_merged = self.categories[1:3]
             result.update(class_1=self.categories[0])
@@ -269,7 +280,7 @@ class Step4:
             print("class 3: ")
             print(result["class_3"])
         elif code == 4:
-            print("There are 3 categories")
+            print("There are 3 contexts")
             result.update(number_classes=3)
             class_merged = self.categories[1] + self.categories[3]
             result.update(class_1=self.categories[0])
@@ -282,7 +293,7 @@ class Step4:
             print("class 3: ")
             print(result["class_3"])
         elif code == 5:
-            print("There are 3 categories")
+            print("There are 3 contexts")
             result.update(number_classes=3)
             class_merged = self.categories[2:4]
             result.update(class_1=self.categories[0])
@@ -295,7 +306,7 @@ class Step4:
             print("class 3: ")
             print(result["class_3"])
         elif code == 6:
-            print("There are 2 categories")
+            print("There are 2 contexts")
             result.update(number_classes=2)
             class_merged = self.categories[0:3]
             result.update(class_1=class_merged)
@@ -305,7 +316,7 @@ class Step4:
             print("class 2: ")
             print(result["class_2"])
         elif code == 7:
-            print("There are 2 categories")
+            print("There are 2 contexts")
             result.update(number_classes=2)
             class_merged = self.categories[1:4]
             result.update(class_1=self.categories[0])
@@ -322,7 +333,7 @@ class Step4:
             print("Only a single class: ")
             print(result["single_class"])
         elif code == 9:
-            print("There are 4 categories")
+            print("There are 4 contexts")
             result.update(number_classes=4)
             result.update(class_1=self.categories[0])
             result.update(class_2=self.categories[1])
@@ -337,7 +348,7 @@ class Step4:
             print("class 4: ")
             print(result["class_3"])
         elif code == 10:
-            print("There are 2 categories")
+            print("There are 2 contexts")
             result.update(number_classes=2)
             class_merged_1 = self.categories[0:2]
             class_merged_2 = self.categories[2:4]
@@ -347,4 +358,94 @@ class Step4:
             print(result["class_1"])
             print("class 2: ")
             print(result["class_2"])
+
+    def get_splitting(self, code):
+        """
+        0: (0, 1), 2, 3
+        1: (0, 2), 1, 3
+        2. (0, 3), 1, 2
+        3: 0, (1, 2), 3
+        4: 0, (1, 3), 2
+        5: 0, 1, (2, 3)
+        6: (0,1,2),3
+        7: 0,(1,2,3)
+        8: (0,1,2,3)
+        9: 0,1,2,3
+        10: (0,1),(2,3)
+        """
+        result = {}
+        if code == 0:
+            result.update(number_classes=3)
+            class_merged = self.categories[0:2]
+            result.update(class_1=class_merged)
+            result.update(class_2=self.categories[2])
+            result.update(class_3=self.categories[3])
+            return result
+        elif code == 1:
+            result.update(number_classes=3)
+            class_merged = self.categories[0] + self.categories[2]
+            result.update(class_1=class_merged)
+            result.update(class_2=self.categories[1])
+            result.update(class_3=self.categories[3])
+            return result
+        elif code == 2:
+            result.update(number_classes=3)
+            class_merged = self.categories[0] + self.categories[3]
+            result.update(class_1=class_merged)
+            result.update(class_2=self.categories[1])
+            result.update(class_3=self.categories[2])
+            return result
+        elif code == 3:
+            result.update(number_classes=3)
+            class_merged = self.categories[1:3]
+            result.update(class_1=self.categories[0])
+            result.update(class_2=class_merged)
+            result.update(class_3=self.categories[3])
+            return result
+        elif code == 4:
+            result.update(number_classes=3)
+            class_merged = self.categories[1] + self.categories[3]
+            result.update(class_1=self.categories[0])
+            result.update(class_2=class_merged)
+            result.update(class_3=self.categories[2])
+            return result
+        elif code == 5:
+            print("There are 3 contexts")
+            result.update(number_classes=3)
+            class_merged = self.categories[2:4]
+            result.update(class_1=self.categories[0])
+            result.update(class_2=self.categories[1])
+            result.update(class_3=class_merged)
+            return result
+        elif code == 6:
+            result.update(number_classes=2)
+            class_merged = self.categories[0:3]
+            result.update(class_1=class_merged)
+            result.update(class_2=self.categories[3])
+            return result
+        elif code == 7:
+            result.update(number_classes=2)
+            class_merged = self.categories[1:4]
+            result.update(class_1=self.categories[0])
+            result.update(class_2=class_merged)
+            return result
+        elif code == 8:
+            result.update(number_classes=1)
+            class_merged = self.categories[0:4]
+            result.update(single_class=class_merged)
+            return result
+        elif code == 9:
+            result.update(number_classes=4)
+            result.update(class_1=self.categories[0])
+            result.update(class_2=self.categories[1])
+            result.update(class_3=self.categories[2])
+            result.update(class_4=self.categories[3])
+            return result
+        elif code == 10:
+            result.update(number_classes=2)
+            class_merged_1 = self.categories[0:2]
+            class_merged_2 = self.categories[2:4]
+            result.update(class_1=class_merged_1)
+            result.update(class_2=class_merged_2)
+            return result
 

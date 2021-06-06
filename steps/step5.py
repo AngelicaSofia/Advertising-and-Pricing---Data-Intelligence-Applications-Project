@@ -3,6 +3,7 @@ from dia.environments import pricing_environment
 from dia.learner.pricing.pricing_learner import TS_Learner
 from dia.learner.advertising.gp_learner import GP_Learner
 from dia.environments import function_manager as fm
+from dia.utils import logger
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -190,6 +191,24 @@ class Step5:
         """
         ts_rewards_per_experiment = []  # store rewards
 
+        self.result_table_ts = logger.create_table(horizon * n_experiment - 1, 5)
+        # 6 columns in result table, first is the pulled arm by the algorithm, second is the reward of the algorithm,
+        # third is the pulled arm by the clairvoyant
+        # fourth is the reward of clairvoyant
+        # fifth is the experiment
+        # sixth is the time horizon
+
+        self.params_ts = logger.create_table(horizon * n_experiment - 1, 3)
+        # 6 columns in params table
+        # first is the pulled arm by the algorithm
+        # second is the reward of the algorithm
+        # third is the alpha of parameter
+        # fourth is the beta of parameter
+
+        index = 0
+        path_obj_ts = "results/step3/ts"
+        path_p_ts = "results/step3/params_ts"
+
         for e in range(0, n_experiment):
             self.exp = e
             self.estimation_round = 1
@@ -240,6 +259,24 @@ class Step5:
                 ts_learner.update(pulled_arm, reward)  # learner updates the rewards
                 self.pulled_arms.append(self.arms[pulled_arm])
 
+                # logging
+                logger.update_table(self.result_table_ts, index, 0, pulled_arm)
+                logger.update_table(self.result_table_ts, index, 1, reward)
+
+                logger.update_table(self.params_ts, index, 0, pulled_arm)
+                logger.update_table(self.params_ts, index, 1, reward)
+                logger.update_table(self.params_ts, index, 2, ts_learner.beta_parameters[pulled_arm, 0])
+                logger.update_table(self.params_ts, index, 3, ts_learner.beta_parameters[pulled_arm, 1])
+
+                # Clairvoyant
+                best_arm, best_reward = self.clairvoyant(t, price)
+                # logging
+                logger.update_table(self.result_table_ts, index, 2, best_arm)
+                logger.update_table(self.result_table_ts, index, 3, best_reward)
+                logger.update_table(self.result_table_ts, index, 4, e)
+                logger.update_table(self.result_table_ts, index, 5, t)
+                index = index + 1
+
                 # Checks needed to verify reward of positive rewards of the pulled arms
                 self.number_pulls_for_arm[pulled_arm] = self.number_pulls_for_arm[pulled_arm] + 1
                 if reward > 0:
@@ -280,6 +317,9 @@ class Step5:
         #plt.show()
         plt.savefig("plots/TS_for_bidding.png")
 
+        logger.table_to_csv(self.result_table_ts, path_obj_ts)
+        logger.table_to_csv(self.params_ts, path_p_ts)
+
     def select_best_arm(self):
         return max(set(self.pulled_arms), key=self.pulled_arms.count)
 
@@ -299,7 +339,7 @@ class Step5:
         print("after: ")
         print(env.probabilities)
 
-    def clairvoyant(self, t):
+    def clairvoyant(self, t, price):
         """This function returns the objective function, having a bid, number of clicks and cost per click fixed. The
         value that is changing is the price"""
         if t < 30:
@@ -310,9 +350,10 @@ class Step5:
         self.lambda_values_poisson_months[t] = lambda_poisson
 
         rewards = list()
-        for price in self.arms:
-            reward = price * self.conv_rate[(price - 1).astype(int)] * self.number_clicks * (1 + lambda_poisson) \
-                     - (self.cost_per_click * self.number_clicks)
+        for bid in self.arms:
+            reward = price * self.conv_rate[(price - 1)] * self.temp_estimated_n_clicks[bid - 1] * \
+                     (1 + lambda_poisson) - (self.temp_estimated_cost[bid - 1] *
+                                             self.temp_estimated_n_clicks[bid - 1])
             rewards.append(reward)
         best_reward = max(rewards)
         best_arm = rewards.index(best_reward)

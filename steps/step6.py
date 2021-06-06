@@ -3,6 +3,7 @@ from dia.environments import pricing_environment
 from dia.learner.pricing.pricing_learner import TS_Learner
 from dia.learner.advertising.gp_learner import GP_Learner
 from dia.environments import function_manager as fm
+from dia.utils import logger
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,6 +41,8 @@ class Step6:
         self.sigma_reward = 0
         self.sigma_cost_per_click = np.zeros(len(self.bid_arms))
         self.sigma_n_clicks = np.zeros(len(self.bid_arms))
+
+        self.lambda_values_poisson_months = np.zeros(360)  # horizon one year
 
     def generate_observations(self, f_to_estimate, x):
         """Function to generate observations. Considering number of clicks and cost per click, the function depends on
@@ -156,12 +159,20 @@ class Step6:
     def objective_function(self, price, bid, t):
         """This function returns the objective function, considering that conversion rate is known, while number of
         clicks and cost per click must be learnt as gaussian processes"""
+        if t < 30:
+            lambda_poisson = np.random.poisson(self.lambda_poisson, 1)
+        else:
+            resample = np.mean(self.lambda_values_poisson_months[0:t-29])
+            lambda_poisson = np.random.poisson(resample, 1)
+        self.lambda_values_poisson_months[t] = lambda_poisson
+        #print(self.lambda_values_poisson_months[t])
+
         if t%120==0: # every 4 months a new gp is run
             reward = price * self.conv_rate[(price - 1)] * self.estimate_n_clicks(bid) * \
-                     (1 + self.lambda_poisson) - (self.estimate_cost_x_click(bid) * self.estimate_n_clicks(bid))
+                     (1 + lambda_poisson) - (self.estimate_cost_x_click(bid) * self.estimate_n_clicks(bid))
         else:
             reward = price * self.conv_rate[(price - 1)] * self.temp_estimated_n_clicks[bid - 1] * \
-                     (1 + self.lambda_poisson) - (self.temp_estimated_cost[bid - 1] *
+                     (1 + lambda_poisson) - (self.temp_estimated_cost[bid - 1] *
                                                   self.temp_estimated_n_clicks[bid - 1])
 
         self.sigma_reward = (self.temp_estimated_n_clicks[bid - 1]**2 * self.sigma_cost_per_click[bid - 1]**2) + \
@@ -180,6 +191,41 @@ class Step6:
         """
         ts_bid_rewards_per_experiment = []  # store rewards bidding
         ts_price_rewards_per_experiment = []  # store rewards pricing
+
+        self.result_table_ts_price = logger.create_table(horizon * n_experiment - 1, 5)
+        # 6 columns in result table, first is the pulled arm by the algorithm, second is the reward of the algorithm,
+        # third is the pulled arm by the clairvoyant
+        # fourth is the reward of clairvoyant
+        # fifth is the experiment
+        # sixth is the time horizon
+
+        self.params_ts_price = logger.create_table(horizon * n_experiment - 1, 3)
+        # 6 columns in params table
+        # first is the pulled arm by the algorithm
+        # second is the reward of the algorithm
+        # third is the alpha of parameter
+        # fourth is the beta of parameter
+
+        index = 0
+        path_obj_ts_price = "results/step6/ts_price"
+        path_p_ts_price = "results/step6/params_ts_price"
+
+        self.result_table_ts_bid = logger.create_table(horizon * n_experiment - 1, 5)
+        # 6 columns in result table, first is the pulled arm by the algorithm, second is the reward of the algorithm,
+        # third is the pulled arm by the clairvoyant
+        # fourth is the reward of clairvoyant
+        # fifth is the experiment
+        # sixth is the time horizon
+
+        self.params_ts_bid = logger.create_table(horizon * n_experiment - 1, 3)
+        # 6 columns in params table
+        # first is the pulled arm by the algorithm
+        # second is the reward of the algorithm
+        # third is the alpha of parameter
+        # fourth is the beta of parameter
+
+        path_obj_ts_bid = "results/step6/ts_bid"
+        path_p_ts_bid = "results/step6/params_ts_bid"
 
         for e in range(0, n_experiment):
             self.exp = e
@@ -271,6 +317,39 @@ class Step6:
                 self.pulled_bid_arms.append(self.bid_arms[pulled_bid_arm])
                 self.pulled_price_arms.append(self.price_arms[pulled_price_arm])
 
+                #####################################################################################################
+                # logging
+                logger.update_table(self.result_table_ts_bid, index, 0, pulled_bid_arm)
+                logger.update_table(self.result_table_ts_bid, index, 1, bid_reward)
+                logger.update_table(self.result_table_ts_price, index, 0, pulled_price_arm)
+                logger.update_table(self.result_table_ts_price, index, 1, price_reward)
+
+                logger.update_table(self.params_ts_bid, index, 0, pulled_bid_arm)
+                logger.update_table(self.params_ts_bid, index, 1, bid_reward)
+                logger.update_table(self.params_ts_bid, index, 2, ts_bid_learner.beta_parameters[pulled_bid_arm, 0])
+                logger.update_table(self.params_ts_bid, index, 3, ts_bid_learner.beta_parameters[pulled_bid_arm, 1])
+                logger.update_table(self.params_ts_price, index, 0, pulled_price_arm)
+                logger.update_table(self.params_ts_price, index, 1, price_reward)
+                logger.update_table(self.params_ts_price, index, 2, ts_price_learner.beta_parameters[pulled_price_arm,
+                                                                                                     0])
+                logger.update_table(self.params_ts_price, index, 3, ts_price_learner.beta_parameters[pulled_price_arm,
+                                                                                                     1])
+
+                # Clairvoyant
+                best_arm_bid, best_reward_bid = self.clairvoyant_bid(t, pulled_price_arm)
+                best_arm_price, best_reward_price = self.clairvoyant_price(t, pulled_bid_arm)
+                # logging
+                logger.update_table(self.result_table_ts_bid, index, 2, best_arm_bid)
+                logger.update_table(self.result_table_ts_bid, index, 3, best_reward_bid)
+                logger.update_table(self.result_table_ts_bid, index, 4, e)
+                logger.update_table(self.result_table_ts_bid, index, 5, t)
+                logger.update_table(self.result_table_ts_price, index, 2, best_arm_price)
+                logger.update_table(self.result_table_ts_price, index, 3, best_reward_price)
+                logger.update_table(self.result_table_ts_price, index, 4, e)
+                logger.update_table(self.result_table_ts_price, index, 5, t)
+                index = index + 1
+                #####################################################################################################
+
                 # Checks needed to verify reward of positive rewards of the pulled arms
                 self.number_pulls_for_bid_arm[pulled_bid_arm] = self.number_pulls_for_bid_arm[pulled_bid_arm] + 1
                 if bid_reward > 0:
@@ -314,6 +393,7 @@ class Step6:
         plt.ylim(0, labels[best_bid-1]+300)
         #plt.show()
         plt.savefig("plots/TS_for_bidding.png")
+        plt.close(fig)
 
         # TS for pricing plot
         data_price = np.array(self.pulled_price_arms)
@@ -341,11 +421,58 @@ class Step6:
         plt.ylim(0, labels_price[best_price - 1] + 300)
         # plt.show()
         plt.savefig("plots/TS_for_pricing.png")
+        plt.close(fig)
+
+        logger.table_to_csv(self.result_table_ts_price, path_obj_ts_price)
+        logger.table_to_csv(self.params_ts_price, path_p_ts_price)
+        logger.table_to_csv(self.result_table_ts_bid, path_obj_ts_bid)
+        logger.table_to_csv(self.params_ts_bid, path_p_ts_bid)
 
     def select_best_bid_arm(self):
         return max(set(self.pulled_bid_arms), key=self.pulled_bid_arms.count)
 
     def select_best_price_arm(self):
         return max(set(self.pulled_price_arms), key=self.pulled_price_arms.count)
+
+    def clairvoyant_bid(self, t, price):
+        """This function returns the objective function, having a bid, number of clicks and cost per click fixed. The
+        value that is changing is the price"""
+        if t < 30:
+            lambda_poisson = np.random.poisson(self.lambda_poisson, 1)
+        else:
+            resample = np.mean(self.lambda_values_poisson_months[0:t-29])
+            lambda_poisson = np.random.poisson(resample, 1)
+        self.lambda_values_poisson_months[t] = lambda_poisson
+
+        rewards = list()
+        for bid in self.bid_arms:
+            reward = price * self.conv_rate[(price - 1)] * self.temp_estimated_n_clicks[bid - 1] * \
+                     (1 + lambda_poisson) - (self.temp_estimated_cost[bid - 1] *
+                                             self.temp_estimated_n_clicks[bid - 1])
+            rewards.append(reward)
+        best_reward = max(rewards)
+        best_arm = rewards.index(best_reward)
+        return best_arm, best_reward
+
+    def clairvoyant_price(self, t, bid):
+        """This function returns the objective function, having a bid, number of clicks and cost per click fixed. The
+        value that is changing is the price"""
+        if t < 30:
+            lambda_poisson = np.random.poisson(self.lambda_poisson, 1)
+        else:
+            resample = np.mean(self.lambda_values_poisson_months[0:t-29])
+            lambda_poisson = np.random.poisson(resample, 1)
+        self.lambda_values_poisson_months[t] = lambda_poisson
+
+        rewards = list()
+        for price in self.price_arms:
+            reward = price * self.conv_rate[(price - 1)] * self.temp_estimated_n_clicks[bid - 1] * \
+                     (1 + lambda_poisson) - (self.temp_estimated_cost[bid - 1] *
+                                             self.temp_estimated_n_clicks[bid - 1])
+            rewards.append(reward)
+        best_reward = max(rewards)
+        best_arm = rewards.index(best_reward)
+        return best_arm, best_reward
+
 
 

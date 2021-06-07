@@ -86,7 +86,7 @@ class Step7:
             Y = y_obs.ravel()
 
             gp_learner.learn(X, Y, self.bid_arms)
-
+            """
             fig = plt.figure(i + self.n_obs * (self.estimation_round) / 10)
             plt.plot(gp_learner.x_pred, fm.get_n_click(gp_learner.x_pred, customer_class), 'r', label=r'$n clicks(bid) class {}$'.
                      format(customer_class))
@@ -104,7 +104,7 @@ class Step7:
                 plt.savefig(
                     "plots/bidding and pricing (step 7)/n_clicks_experiment_class_{}_{}_estimation_month_{}.png".
                     format(customer_class, self.exp, int(self.estimation_round / 30)))
-            plt.close(fig)
+            plt.close(fig)"""
 
 
         # saving temporal values for the estimations

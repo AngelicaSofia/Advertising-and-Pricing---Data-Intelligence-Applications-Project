@@ -206,8 +206,8 @@ class Step5:
         # fourth is the beta of parameter
 
         index = 0
-        path_obj_ts = "results/step3/ts"
-        path_p_ts = "results/step3/params_ts"
+        path_obj_ts = "results/step5/ts"
+        path_p_ts = "results/step5/params_ts"
 
         for e in range(0, n_experiment):
             self.exp = e
@@ -332,12 +332,14 @@ class Step5:
 
     def set_probabilities(self, env: pricing_environment):
         "Change probabilities of env"
+        """
         print("before: ")
         print(env.probabilities)
         for i in range(len(self.arms)):
             env.probabilities[i] = self.updated_probabilities[i]
         print("after: ")
-        print(env.probabilities)
+        print(env.probabilities)"""
+        s=1
 
     def clairvoyant(self, t, price):
         """This function returns the objective function, having a bid, number of clicks and cost per click fixed. The

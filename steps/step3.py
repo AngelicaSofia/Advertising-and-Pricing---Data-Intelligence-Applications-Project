@@ -174,9 +174,9 @@ class Step3:
         plt.close(fig)
 
         #logger.table_to_csv(self.result_table_ts, path_obj_ts)
-        #logger.table_to_csv(self.result_table_ucb1, path_obj_ucb1)
+        logger.table_to_csv(self.result_table_ucb1, path_obj_ucb1)
         #logger.table_to_csv(self.params_ts, path_p_ts)
-        #logger.table_to_csv(self.params_ucb1, path_p_ucb1)
+        logger.table_to_csv(self.params_ucb1, path_p_ucb1)
 
     def select_best_arm(self):
         return max(set(self.pulled_arms), key=self.pulled_arms.count)

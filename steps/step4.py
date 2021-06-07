@@ -204,13 +204,11 @@ class Step4:
         plt.plot()
         plt.ylim(0, labels[best - 1] + 300)
         # plt.show()
-        #plt.savefig("plots/pricing (step 4)/TS_for_pricing.png")
+        plt.savefig("plots/pricing (step 4)/TS_for_pricing.png")
         plt.close(fig)
 
-        #logger.table_to_csv(self.result_table_ts, path_obj_ts)
-        # logger.table_to_csv(self.result_table_ucb1, path_obj_ucb1)
-        #logger.table_to_csv(self.params_ts, path_p_ts)
-        # logger.table_to_csv(self.params_ucb1, path_p_ucb1)
+        logger.table_to_csv(self.result_table_ts, path_obj_ts)
+        logger.table_to_csv(self.params_ts, path_p_ts)
 
 
             # simulate interaction

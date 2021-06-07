@@ -232,14 +232,14 @@ class Step5:
                     # Thompson Sampling TS Learner
                     pulled_arm = ts_learner.pull_arm()  # learner compute arm to pull
                     reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
-                    price = 4
+                    price = 3
                     reward *= self.objective_function(price, self.arms[pulled_arm], t)
                     check_safety_constraint = - reward / self.sigma_reward
                     while check_safety_constraint > -0.84:
                         early_stopping = early_stopping + 1
                         pulled_arm = ts_learner.pull_arm()  # learner compute arm to pull
                         reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
-                        price = 4
+                        price = 3
                         reward *= self.objective_function(price, self.arms[pulled_arm], t)
                         check_safety_constraint = - reward / self.sigma_reward
                         if early_stopping == 10:
@@ -253,7 +253,7 @@ class Step5:
                     # Thompson Sampling TS Learner
                     pulled_arm = ts_learner.pull_arm()  # learner compute arm to pull
                     reward = env.round(pulled_arm)  # environment compute reward given the pulled arm
-                    price = 4
+                    price = 3
                     reward *= self.objective_function(price, self.arms[pulled_arm], t)
 
                 ts_learner.update(pulled_arm, reward)  # learner updates the rewards
@@ -315,7 +315,7 @@ class Step5:
         plt.plot()
         plt.ylim(0, labels[best-1]+400)
         #plt.show()
-        plt.savefig("plots/TS_for_bidding.png")
+        plt.savefig("plots/bidding and learning (step 5)/TS_for_bidding.png")
 
         logger.table_to_csv(self.result_table_ts, path_obj_ts)
         logger.table_to_csv(self.params_ts, path_p_ts)

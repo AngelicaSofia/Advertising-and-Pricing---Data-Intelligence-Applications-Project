@@ -26,3 +26,7 @@ You need to complete the following steps.
 - Produce the Python code.
 - Produce a technical report describing the environment, the algorithms and the plot representing the regret and the reward of every algorithm. Provide also a practical application motivating the scenario.
 - Produce a presentation as a summary of the technical report.
+
+###### How to run:
+Main in scripts/runner.py
+N.B. Some points of the steps are commented, to run the single step it is necessary to uncomment the specific step.
